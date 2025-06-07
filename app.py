@@ -1,54 +1,53 @@
-
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-st.set_page_config(page_title="Dashboard de Vehículos Usados", layout="wide")
+# Título de la app
+st.title("Visualizador de Vehículos Usados")
 
-st.title("🚗 Dashboard de Vehículos Usados en Estados Unidos")
-st.markdown("""
-Bienvenido al visualizador de datos de vehículos usados. 
-Aquí puedes explorar información detallada sobre distintas marcas, modelos, precios y condiciones de vehículos listados en EE.UU.
+# Cargar datos
+df = pd.read_csv("vehicles_us.csv")
 
-Usa los filtros y visualizaciones para analizar el mercado de autos usados y descubrir tendencias importantes.
-""")
+# Mostrar el dataframe si el usuario marca el checkbox
+if st.checkbox("Mostrar datos crudos"):
+    st.write(df.head())
 
-# Load the dataset
-df = pd.read_csv('vehicles_us.csv')
+# Gráfico de precios por tipo de vehículo
+st.subheader("Precio de vehículos por tipo")
+fig = px.box(df, x="type", y="price", points="all", title="Distribución de precios por tipo de vehículo")
+st.plotly_chart(fig)
 
-# Mostrar datos
+# Filtro interactivo por tipo
+vehicle_type = st.selectbox("Selecciona un tipo de vehículo", df["type"].dropna().unique())
+filtered_df = df[df["type"] == vehicle_type]
 
-st.subheader("Vista previa de los datos")
-st.dataframe(df.head(10))
+# Histograma de año de fabricación para el tipo seleccionado
+st.subheader(f"Año de fabricación para tipo '{vehicle_type}'")
+fig2 = px.histogram(filtered_df, x="model_year", nbins=20, title="Distribución por año")
+st.plotly_chart(fig2)
 
-# Histograma del precio
-st.subheader("Distribución de precios de vehículos")
-fig = px.histogram(df, x='price', nbins=50, title='Histograma de precios de vehículos usados')
-fig.update_layout(xaxis_title='Precio (USD)', yaxis_title='Cantidad de vehículos')
-st.plotly_chart(fig, use_container_width=True)
-
-
-# Gráfico de dispersión: Precio vs Año del modelo
-st.subheader("Relación entre el precio y el año del vehículo")
-fig2 = px.scatter(df, x='model_year', y='price',
-                  title='Precio de vehículos según el año del modelo',
-                  labels={'model_year': 'Año del Modelo', 'price': 'Precio (USD)'},
-                  opacity=0.6)
-fig2.update_layout(xaxis_title='Año del Modelo', yaxis_title='Precio (USD)')
-st.plotly_chart(fig2, use_container_width=True)
+# Gráfico de precios por año de fabricación para el tipo seleccionado
+st.subheader(f"Precio por año de fabricación para tipo '{vehicle_type}'")
+fig3 = px.scatter(filtered_df, x="model_year", y="price", title="Precio por año de fabricación")
+st.plotly_chart(fig3)
 
 
+# Título
+st.title("Análisis de Vehículos Usados")
 
+# Limpiar datos nulos para evitar errores en la gráfica
+df = df.dropna(subset=["price", "model_year"])
 
-# Histograma por marca seleccionada
-st.subheader("Distribución de modelos por marca seleccionada")
-marcas = df['manufacturer'].dropna().unique()
-marca_seleccionada = st.selectbox("Selecciona una marca:", sorted(marcas))
+# Casilla de verificación
+if st.checkbox("Mostrar gráfico de precio vs año del modelo"):
+    st.subheader("Precio vs Año del Modelo")
+    fig = px.scatter(
+        df, 
+        x="model_year", 
+        y="price", 
+        color="type",
+        hover_data=["model", "condition"],
+        title="Relación entre Precio y Año del Modelo"
+    )
+    st.plotly_chart(fig)
 
-df_filtrado = df[df['manufacturer'] == marca_seleccionada]
-fig4 = px.histogram(df_filtrado, x='model', color='condition',
-                    title=f'Modelos de vehículos para la marca: {marca_seleccionada}',
-                    labels={'model': 'Modelo', 'condition': 'Condición'},
-                    barmode='group')
-fig4.update_layout(xaxis_title='Modelo', yaxis_title='Cantidad de vehículos')
-st.plotly_chart(fig4, use_container_width=True)
